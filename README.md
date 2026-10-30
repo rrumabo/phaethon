@@ -1,4 +1,4 @@
-# cy-pv-trip-cascade
+# phaethon
 
 **Question.** When a large unit trips at a sunny hour, how many distributed PV inverters disconnect because of their own protection settings, and when does that turn one trip into a system wide collapse?
 
