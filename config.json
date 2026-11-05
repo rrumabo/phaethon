@@ -1,10 +1,10 @@
 {
-    "pv_online_min_mw": 300,
-    "pv_online_max_mw": 600,
+    "pv_online_min_mw": 200,
+    "pv_online_max_mw": 500,
     "pv_online_step_mw": 50,
     "legacy_shares": [0.0, 0.1, 0.2, 0.3],
     "num_seeds": 5,
-    "trip_mw": 165,
-    "system_load_mw": 1000,
+    "trip_mw": 130,
+    "system_load_mw": 650,
     "gfm_capacity_mw": 120
 }

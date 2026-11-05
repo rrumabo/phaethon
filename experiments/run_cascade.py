@@ -24,7 +24,7 @@ def main():
     results = []
     
     for gfm_status in [False, True]:
-        gfm_label = "Future Grid (2027 - With GFM 40MW)" if gfm_status else "Current Grid (2026 - Without Battery)"
+        gfm_label = "Future Grid (2027)" if gfm_status else "Current Grid (2026)"
         print(f"Running scenario: {gfm_label}")
         
         for pv in pv_online_range:
@@ -49,7 +49,7 @@ def main():
                 mean_tripped = np.mean(tripped_mws)
                 collapse_rate = (collapses / len(seeds)) * 100
                 
-                print(f"PV: {pv}MW | Legacy: {int(legacy*100)}% | Tripped: {mean_tripped:.1f}MW | Collapse: {collapse_rate:.0f}%")
+                print(f"PV: {pv}MW | Legacy: {int(legacy*100)}% | Collapse: {collapse_rate:.0f}%")
                 
                 results.append({
                     'GFM_Enabled': gfm_status,
@@ -62,23 +62,35 @@ def main():
     df = pd.DataFrame(results)
     df.to_csv("results/sweep_results.csv", index=False)
     
-    plt.figure(figsize=(10, 6))
     legacy_test = 0.2
     df_no_gfm = df[(df['GFM_Enabled'] == False) & (df['Legacy_Share'] == legacy_test)]
     df_with_gfm = df[(df['GFM_Enabled'] == True) & (df['Legacy_Share'] == legacy_test)]
     
+    # --- PLOT 1: PV Disconnection Power ---
+    plt.figure(figsize=(10, 5))
     plt.plot(df_no_gfm['PV_Online_MW'], df_no_gfm['Mean_Tripped_MW'], 'r-o', label='Current Grid (2026 - Without Battery)', linewidth=2)
-    plt.plot(df_with_gfm['PV_Online_MW'], df_with_gfm['Mean_Tripped_MW'], 'g-s', label='Future Grid (2027 - With GFM Battery 40MW)', linewidth=2)
-    
-    plt.title(f"PV Cascade Mitigation in Cyprus Grid (Legacy Share: {int(legacy_test*100)}%)", fontsize=12)
+    plt.plot(df_with_gfm['PV_Online_MW'], df_with_gfm['Mean_Tripped_MW'], 'g-s', label='Future Grid (2027 - With GFM + FFR Control)', linewidth=2)
+    plt.title(f"PV Disconnection Cascade (Legacy Share: {int(legacy_test*100)}%)", fontsize=12)
     plt.xlabel("Total Online PV Generation (MW)", fontsize=10)
     plt.ylabel("Mean Disconnected PV Power (MW)", fontsize=10)
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.legend(fontsize=10)
-    
-    plt.savefig("results/cascade_comparison.png", dpi=300, bbox_inches='tight')
+    plt.savefig("results/pv_disconnection_comparison.png", dpi=300, bbox_inches='tight')
     plt.close()
-    print("Simulation complete. Results and plots saved in results/ folder.")
+    
+    # --- PLOT 2: Grid Collapse Rate (Blackout Risk) ---
+    plt.figure(figsize=(10, 5))
+    plt.plot(df_no_gfm['PV_Online_MW'], df_no_gfm['Collapse_Rate_Pct'], 'r-o', label='Current Grid (2026 - Without Battery)', linewidth=2)
+    plt.plot(df_with_gfm['PV_Online_MW'], df_with_gfm['Collapse_Rate_Pct'], 'g-s', label='Future Grid (2027 - With GFM + FFR Control)', linewidth=2)
+    plt.title(f"Grid Blackout Risk Analysis (Legacy Share: {int(legacy_test*100)}%)", fontsize=12)
+    plt.xlabel("Total Online PV Generation (MW)", fontsize=10)
+    plt.ylabel("Grid Collapse Rate (%)", fontsize=10)
+    plt.grid(True, linestyle='--', alpha=0.5)
+    plt.legend(fontsize=10)
+    plt.savefig("results/grid_blackout_comparison.png", dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print("Simulation complete. Both plots generated successfully in results/ folder.")
 
 if __name__ == "__main__":
     main()
