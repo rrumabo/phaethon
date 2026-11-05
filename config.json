@@ -11,5 +11,6 @@
     "initial_soc_gfm": 0.50,
     "initial_soc_gfl": 0.50,
     "gfm_energy_mwh": 240.0,
-    "gfl_energy_mwh": 300.0
+    "gfl_energy_mwh": 300.0,
+    "sc_inertia_h": 1.5
 }

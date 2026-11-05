@@ -6,13 +6,9 @@ import matplotlib.pyplot as plt
 from src.pv_cascade import run_simulation
 
 def main():
-    print("Starting Cyprus Grid Cascade Simulation (Phaethon)...")
+    print("Starting Cyprus 3-Scenario Architecture Simulation (Phaethon)...")
     
     config_path = "config.json"
-    if not os.path.exists(config_path):
-        print(f"Error: {config_path} not found.")
-        return
-        
     with open(config_path, "r") as f:
         cfg = json.load(f)
         
@@ -23,10 +19,14 @@ def main():
     os.makedirs("results", exist_ok=True)
     results = []
     
-    for gfm_status in [False, True]:
-        gfm_label = "Future Grid (2027)" if gfm_status else "Current Grid (2026)"
-        print(f"Running scenario: {gfm_label}")
-        
+    scenarios = [
+        {"name": "2026 Baseline (No BESS / No SC)", "gfm": False, "sc": False},
+        {"name": "2027 GFM Only (No SC)", "gfm": True, "sc": False},
+        {"name": "2027 Complete Defense (GFM + SC)", "gfm": True, "sc": True}
+    ]
+    
+    for sc in scenarios:
+        print(f"Running scenario: {sc['name']}")
         for pv in pv_online_range:
             for legacy in legacy_share_range:
                 tripped_mws = []
@@ -39,7 +39,8 @@ def main():
                         trip_mw=cfg["trip_mw"],
                         system_load_mw=cfg["system_load_mw"],
                         gfm_capacity_mw=cfg["gfm_capacity_mw"],
-                        gfm_enabled=gfm_status,
+                        gfm_enabled=sc["gfm"],
+                        sc_enabled=sc["sc"],
                         seed=seed
                     )
                     tripped_mws.append(sim['tripped_mw'])
@@ -49,10 +50,8 @@ def main():
                 mean_tripped = np.mean(tripped_mws)
                 collapse_rate = (collapses / len(seeds)) * 100
                 
-                print(f"PV: {pv}MW | Legacy: {int(legacy*100)}% | Collapse: {collapse_rate:.0f}%")
-                
                 results.append({
-                    'GFM_Enabled': gfm_status,
+                    'Scenario': sc['name'],
                     'PV_Online_MW': pv,
                     'Legacy_Share': legacy,
                     'Mean_Tripped_MW': mean_tripped,
@@ -63,14 +62,16 @@ def main():
     df.to_csv("results/sweep_results.csv", index=False)
     
     legacy_test = 0.2
-    df_no_gfm = df[(df['GFM_Enabled'] == False) & (df['Legacy_Share'] == legacy_test)]
-    df_with_gfm = df[(df['GFM_Enabled'] == True) & (df['Legacy_Share'] == legacy_test)]
+    df_base = df[(df['Scenario'] == "2026 Baseline (No BESS / No SC)") & (df['Legacy_Share'] == legacy_test)]
+    df_gfm = df[(df['Scenario'] == "2027 GFM Only (No SC)") & (df['Legacy_Share'] == legacy_test)]
+    df_comp = df[(df['Scenario'] == "2027 Complete Defense (GFM + SC)") & (df['Legacy_Share'] == legacy_test)]
     
-    # --- PLOT 1: PV Disconnection Power ---
+    # --- PLOT 1: PV Disconnection ---
     plt.figure(figsize=(10, 5))
-    plt.plot(df_no_gfm['PV_Online_MW'], df_no_gfm['Mean_Tripped_MW'], 'r-o', label='Current Grid (2026 - Without Battery)', linewidth=2)
-    plt.plot(df_with_gfm['PV_Online_MW'], df_with_gfm['Mean_Tripped_MW'], 'g-s', label='Future Grid (2027 - With GFM + FFR Control)', linewidth=2)
-    plt.title(f"PV Disconnection Cascade (Legacy Share: {int(legacy_test*100)}%)", fontsize=12)
+    plt.plot(df_base['PV_Online_MW'], df_base['Mean_Tripped_MW'], 'r-o', label='2026 Baseline (No BESS/SC)', linewidth=2)
+    plt.plot(df_gfm['PV_Online_MW'], df_gfm['Mean_Tripped_MW'], 'b-x', label='2027 GFM Only (No SC)', linewidth=2)
+    plt.plot(df_comp['PV_Online_MW'], df_comp['Mean_Tripped_MW'], 'g-s', label='2027 Complete Defense (GFM+SC)', linewidth=2)
+    plt.title(f"PV Cascade Disconnection (Legacy Share: {int(legacy_test*100)}%)", fontsize=12)
     plt.xlabel("Total Online PV Generation (MW)", fontsize=10)
     plt.ylabel("Mean Disconnected PV Power (MW)", fontsize=10)
     plt.grid(True, linestyle='--', alpha=0.5)
@@ -78,10 +79,11 @@ def main():
     plt.savefig("results/pv_disconnection_comparison.png", dpi=300, bbox_inches='tight')
     plt.close()
     
-    # --- PLOT 2: Grid Collapse Rate (Blackout Risk) ---
+    # --- PLOT 2: Grid Collapse Rate ---
     plt.figure(figsize=(10, 5))
-    plt.plot(df_no_gfm['PV_Online_MW'], df_no_gfm['Collapse_Rate_Pct'], 'r-o', label='Current Grid (2026 - Without Battery)', linewidth=2)
-    plt.plot(df_with_gfm['PV_Online_MW'], df_with_gfm['Collapse_Rate_Pct'], 'g-s', label='Future Grid (2027 - With GFM + FFR Control)', linewidth=2)
+    plt.plot(df_base['PV_Online_MW'], df_base['Collapse_Rate_Pct'], 'r-o', label='2026 Baseline (No BESS/SC)', linewidth=2)
+    plt.plot(df_gfm['PV_Online_MW'], df_gfm['Collapse_Rate_Pct'], 'b-x', label='2027 GFM Only (No SC)', linewidth=2)
+    plt.plot(df_comp['PV_Online_MW'], df_comp['Collapse_Rate_Pct'], 'g-s', label='2027 Complete Defense (GFM+SC)', linewidth=2)
     plt.title(f"Grid Blackout Risk Analysis (Legacy Share: {int(legacy_test*100)}%)", fontsize=12)
     plt.xlabel("Total Online PV Generation (MW)", fontsize=10)
     plt.ylabel("Grid Collapse Rate (%)", fontsize=10)
@@ -90,7 +92,7 @@ def main():
     plt.savefig("results/grid_blackout_comparison.png", dpi=300, bbox_inches='tight')
     plt.close()
     
-    print("Simulation complete. Both plots generated successfully in results/ folder.")
+    print("3-Scenario simulation successful. Plots saved in results/ folder.")
 
 if __name__ == "__main__":
     main()
