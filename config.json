@@ -6,5 +6,10 @@
     "num_seeds": 5,
     "trip_mw": 130,
     "system_load_mw": 650,
-    "gfm_capacity_mw": 120
+    "gfm_capacity_mw": 120,
+    "gfl_capacity_mw": 150,
+    "initial_soc_gfm": 0.50,
+    "initial_soc_gfl": 0.50,
+    "gfm_energy_mwh": 240.0,
+    "gfl_energy_mwh": 300.0
 }
